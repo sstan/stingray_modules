@@ -1,9 +1,3 @@
-////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////
-////    main.c
-////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -56,6 +50,8 @@ int main(void)
 	 */
 
 	motor_pwm_start(MOTOR_PWM_LEFT, 3000);
+	motor_pwm_start(MOTOR_PWM_RIGHT, 2690);
+	motor_pwm_start(MOTOR_PWM_CENTER, 2000);
 
     // turn on the serial port for debugging or for other USART reasons.
 	// serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1)

@@ -2,11 +2,15 @@
  * tc_tools.h
  *
  *  Created on: Jan 28, 2015
- *      Author: Nco
+ *      Author: sstan
  */
 
 #ifndef TC_TOOLS_H_
 #define TC_TOOLS_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 
@@ -33,5 +37,8 @@ void tc_set_wgm(volatile uint8_t* TCCR_A_ptr,
 void tc_set_prescaler(volatile uint8_t* TCCR_B_ptr,
 		              int prescaler);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TC_TOOLS_H_ */

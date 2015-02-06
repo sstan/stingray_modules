@@ -2,7 +2,7 @@
  * tc_tools.c
  *
  *  Created on: Jan 28, 2015
- *      Author: Nco
+ *      Author: sstan
  */
 
 #include <stdint.h>

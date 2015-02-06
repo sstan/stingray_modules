@@ -2,11 +2,15 @@
  * motor_pwm.h
  *
  *  Created on: Jan 23, 2015
- *      Author: Nco
+ *      Author: sstan
  */
 
 #ifndef MOTOR_PWM_H_
 #define MOTOR_PWM_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 
@@ -26,5 +30,9 @@ void motor_pwm_stop(int arg);
 void motor_pwm_pulse_width_set(int arg, uint16_t pulse_width_cycles);
 
 uint16_t motor_pwm_pulse_width_get(int arg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* MOTOR_PWM_H_ */

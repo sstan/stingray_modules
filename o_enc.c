@@ -2,7 +2,7 @@
  * o_enc.c
  *
  *  Created on: Jan 28, 2015
- *      Author:
+ *      Author: sstan
  */
 
 #include <stdint.h>

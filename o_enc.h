@@ -2,11 +2,15 @@
  * o_enc.h
  *
  *  Created on: Jan 28, 2015
- *      Author: Nco
+ *      Author: sstan
  */
 
 #ifndef O_ENC_H_
 #define O_ENC_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define OPTICAL_ENCODER_LEFT	0
 #define OPTICAL_ENCODER_RIGHT	1
@@ -32,5 +36,9 @@ struct encoder_state* enc_get_handle(int arg);
 void enc_compute_tr_period(int arg);
 
 void enc_clear_counter(int arg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* O_ENC_H_ */

@@ -2,7 +2,7 @@
  * motor_pwm.c
  *
  *  Created on: Jan 23, 2015
- *      Author: Nco
+ *      Author: sstan
  */
 
 #include <avr/io.h>
@@ -23,7 +23,7 @@ struct motor_registers_s {
 	volatile uint16_t*	OCR_ptr;
 	volatile uint8_t*	DDR_ptr;
 	volatile uint8_t*	PORT_ptr;
-	uint8_t   			pin;
+	uint8_t				pin;
 	volatile uint8_t*	TCCR_A_ptr;
 	uint8_t				channel;
 };
@@ -33,15 +33,18 @@ const struct motor_registers_s motors[3] =
 	{	/* MOTOR_PWM_LEFT
 		 * PB5 ( OC1A/PCINT5 )	Digital pin 11 (PWM)
 		 *
-	 	 */
+		 */
 		OCR_ptr:	&OCR1A,
 		DDR_ptr:	&DDRB,
 		PORT_ptr:	&PORTB,
-		pin: 		5,
+		pin:		5,
 		TCCR_A_ptr:	&TCCR1A,
 		channel:	TC_CHANNEL_A
 	},
-	{	/* MOTOR_PWM_RIGHT */
+	{	/* MOTOR_PWM_RIGHT
+	 	 * Digital pin 12 (PWM)
+	 	 *
+	 	 */
 		OCR_ptr:	&OCR1B,
 		DDR_ptr:	&DDRB,
 		PORT_ptr:	&PORTB,
@@ -49,7 +52,10 @@ const struct motor_registers_s motors[3] =
 		TCCR_A_ptr:	&TCCR1A,
 		channel:	TC_CHANNEL_B
 	},
-	{	/* MOTOR_PWM_CENTER */
+	{	/* MOTOR_PWM_CENTER
+		 * Digital pin 13 (PWM)
+		 *
+		 */
 		OCR_ptr:	&OCR1C,
 		DDR_ptr:	&DDRB,
 		PORT_ptr:	&PORTB,
