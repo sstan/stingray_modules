@@ -12,30 +12,54 @@
 extern "C" {
 #endif
 
-#define OPTICAL_ENCODER_LEFT	0
-#define OPTICAL_ENCODER_RIGHT	1
+#define ENC_ID_ENCODER_LEFT     0
+#define ENC_ID_ENCODER_RIGHT    1
+#define ENC_NUMBER_OF_ENCODERS  2
 
-#define OENC_STATE_STOPPED			0
-#define OENC_STATE_NEED_ONE_MORE	1
-#define OENC_STATE_VALID			2
+/* Input Capture Event Callback
+ *
+ * This module will call the provided function with the following parameters
+ * provided.
+ *
+ *   - uint8_t enc_id
+ *      The optical encoder associated with the event.
+ *
+ *   - uint32_t timestamp
+ *      TC cycles since initialization at the moment of the event.
+ *
+ *
+ */
+typedef void (*evt_callback_ptr_t)(uint8_t enc_id, uint32_t timestamp);
 
-#define OENC_SAMPLE_EXPIRES_CYCLES	((uint16_t) 20000)
 
-struct encoder_state {
-	uint8_t		encoder_id;
-	uint8_t 	state;
-	uint16_t	last_icr_val;
-	uint16_t	counter;
-	uint16_t	period;
-};
+/* enc_init -- Initialize an optical encoder
+ *
+ * Call this function one time per optical encoder.
+ *
+ * parameters:
+ *   - uint8_t enc_id
+ *       The ID of the optical encoder.
+ *
+ *   - evt_callback_ptr_t handler_fn_ptr
+ *       A pointer to the function that will be called when an Input Capture
+ *       event happens. IMPORTANT: the function will be executed in the
+ *       context of an interrupt.
+ *
+ */
+void enc_init(uint8_t enc_id, evt_callback_ptr_t handler_fn_ptr);
 
-struct encoder_state* enc_init(int arg);
-
-struct encoder_state* enc_get_handle(int arg);
-
-void enc_compute_tr_period(int arg);
-
-void enc_clear_counter(int arg);
+/* enc_get_time -- get current time since initialization
+ *
+ * parameters:
+ *   - uint8_t enc_id
+ *       The ID of the optical encoder.
+ *
+ *   - uint32_t* timestamp
+ *       Pointer to the timestamp. This function will write the timestamp
+ *       at that memory location.
+ *
+ */
+void enc_get_time(uint8_t enc_id, uint32_t* timestamp);
 
 #ifdef __cplusplus
 }

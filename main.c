@@ -28,30 +28,36 @@ static void TaskServiceOpticalEncoder(void* pvParameters);
 static void TaskOencInfo(void* pvParameters);
 
 /*-----------------------------------------------------------*/
+uint32_t timestamp_g[2];
+uint32_t enc_cntr[2];
+
+evt_callback_ptr_t encoder_evt_callback(uint8_t enc_id, uint32_t timestamp)
+{
+	timestamp_g[enc_id] = timestamp;
+	enc_cntr[enc_id]++;
+
+	if (PORTB) PORTB = 0;
+	else PORTB |= 1 << 7;
+
+}
+
 
 /* Main program loop */
 int main(void) __attribute__((OS_main));
 
 int main(void)
 {
-	struct encoder_state* oenc_left_handle = NULL;
+	tc_module_init(TC_MODULE_4);
+	tc_module_init(TC_MODULE_5);
 
-	enc_init(OPTICAL_ENCODER_LEFT);
+	DDRB  |= _BV(DDB7);
 
-	oenc_left_handle = enc_get_handle(OPTICAL_ENCODER_LEFT);
+	enc_init(ENC_ID_ENCODER_LEFT, &encoder_evt_callback);
+	enc_init(ENC_ID_ENCODER_RIGHT, &encoder_evt_callback);
 
-	/* Will initialize TC module 1. */
-
-	motor_pwm_tc_init();
-
-	/* MOTOR_PWM_LEFT
-	 * PB5 ( OC1A/PCINT5 )	Digital pin 11 (PWM)
-	 *
-	 */
-
-	motor_pwm_start(MOTOR_PWM_LEFT, 3000);
-	motor_pwm_start(MOTOR_PWM_RIGHT, 2690);
-	motor_pwm_start(MOTOR_PWM_CENTER, 2000);
+	servo_start(MOTOR_PWM_LEFT, 3000);
+	servo_start(MOTOR_PWM_RIGHT, 2690);
+	servo_start(MOTOR_PWM_CENTER, 2000);
 
     // turn on the serial port for debugging or for other USART reasons.
 	// serial port: WantedBaud, TxQueueLength, RxQueueLength (8n1)
@@ -81,7 +87,7 @@ int main(void)
         		TaskOencInfo
         		,(const portCHAR *)"oencInfo"
         		,256
-        		,(void*) oenc_left_handle
+        		,(void*) NULL
         		,3
         		,NULL);
 
@@ -97,7 +103,7 @@ int main(void)
 
 static void TaskOencInfo(void* oenc_lh)
 {
-	struct encoder_state* oenc_left = (struct encoder_state*) oenc_lh;
+
 
 	TickType_t xLastWakeTime;
 
@@ -105,21 +111,18 @@ static void TaskOencInfo(void* oenc_lh)
 
 
 
+
 	while(1)
 	{
-		xSerialPrintf_P(PSTR("counter: %u.\r\n"), oenc_left->counter);
-		xSerialPrintf_P(PSTR("period: %u.\r\n"), oenc_left->period);
-		xSerialPrintf_P(PSTR("state: %u.\r\n"), oenc_left->state);
-		xSerialPrintf_P(PSTR("last ICR val: %u.\r\n"), oenc_left->last_icr_val);
-		xSerialPrintf_P(PSTR("TIFR: %x.\r\n"), TIFR4);
 
-		xSerialPrintf_P(PSTR("ICR1: %u.\r\n"), ICR1);
-		xSerialPrintf_P(PSTR("TCCR1A: %x.\r\n"), TCCR1A);
-		xSerialPrintf_P(PSTR("TCCR1B: %x.\r\n"), TCCR1B);
+		xSerialPrintf_P(PSTR("timestamp_g[0]: %u.\r\n"), timestamp_g[0]);
+		xSerialPrintf_P(PSTR("timestamp_g[1]: %u.\r\n"), timestamp_g[1]);
 
+		xSerialPrintf_P(PSTR("enc_cntr[0]: %u.\r\n"), enc_cntr[0]);
+		xSerialPrintf_P(PSTR("enc_cntr[1]: %u.\r\n"), enc_cntr[1]);
 
 		xSerialPrintf_P(PSTR("Pulse width (cycles): %d.\r\n"),
-				motor_pwm_pulse_width_get(MOTOR_PWM_LEFT));
+				servo_pulse_width_get(MOTOR_PWM_LEFT));
 
 		xSerialPrintf_P(PSTR("***********************\r\n"));
 
@@ -135,7 +138,7 @@ static void TaskServiceOpticalEncoder(void* pvParameters)
 
 	UBaseType_t ch;
 
-	uint16_t pw;
+	uint32_t pw;
 	TickType_t xLastWakeTime;
 
 	xLastWakeTime = xTaskGetTickCount();
@@ -143,7 +146,7 @@ static void TaskServiceOpticalEncoder(void* pvParameters)
 
 	while(1)
 	    {
-			enc_compute_tr_period(OPTICAL_ENCODER_LEFT);
+
 			vTaskDelayUntil( &xLastWakeTime, ( 24 / portTICK_PERIOD_MS ) );
 
 
@@ -151,19 +154,19 @@ static void TaskServiceOpticalEncoder(void* pvParameters)
 			{
 				xSerialGetChar(&xSerialPort, &ch);
 
-				pw = motor_pwm_pulse_width_get(MOTOR_PWM_LEFT);
+				pw = servo_pulse_width_get(MOTOR_PWM_LEFT);
 
 				if (ch == 'p')
 				{
-					motor_pwm_pulse_width_set(MOTOR_PWM_LEFT, pw + 1);
+					servo_pulse_width_set(MOTOR_PWM_LEFT, pw + 1);
 				}
 				else if (ch == 'o')
 				{
-					motor_pwm_pulse_width_set(MOTOR_PWM_LEFT, pw - 1);
+					servo_pulse_width_set(MOTOR_PWM_LEFT, pw - 1);
 				}
 				else if (ch == ' ')
 				{
-					motor_pwm_pulse_width_set(MOTOR_PWM_LEFT, 2640);
+					servo_pulse_width_set(MOTOR_PWM_LEFT, 2640);
 				}
 			}
 
@@ -176,7 +179,7 @@ static void TaskBlinkRedLED(void *pvParameters) // Main Red LED Flash
 {
     (void) pvParameters;
     TickType_t xLastWakeTime;
-    int current_speed;
+
     const float target_speed = 12.0;
 
 

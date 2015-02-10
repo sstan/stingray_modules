@@ -21,15 +21,13 @@ extern "C" {
 
 /* Motor PWM module entry points */
 
-void motor_pwm_tc_init(void);
+void servo_start(int arg, uint16_t pulse_width_cycles);
 
-void motor_pwm_start(int arg, uint16_t pulse_width_cycles);
+void servo_stop(int arg);
 
-void motor_pwm_stop(int arg);
+void servo_pulse_width_set(int arg, uint16_t pulse_width_cycles);
 
-void motor_pwm_pulse_width_set(int arg, uint16_t pulse_width_cycles);
-
-uint16_t motor_pwm_pulse_width_get(int arg);
+uint16_t servo_pulse_width_get(int arg);
 
 #ifdef __cplusplus
 }

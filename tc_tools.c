@@ -6,11 +6,91 @@
  */
 
 #include <stdint.h>
-
 #include "tc_tools.h"
+
+const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES] =
+{
+	{	/* TC_MODULE_1 */
+		TIFR_ptr:	&TIFR1,
+		TCNT_ptr:	&TCNT1,
+		ICR_ptr:	&ICR1,
+		TCCR_A_ptr:	&TCCR1A,
+		TCCR_B_ptr:	&TCCR1B,
+		prescale:	8,
+		wgm_mode:	(uint8_t) 15,
+	},
+	{	/* TC_MODULE_3 */
+		TIFR_ptr:	&TIFR3,
+		TCNT_ptr:	&TCNT3,
+		ICR_ptr:	&ICR3,
+		TCCR_A_ptr:	&TCCR3A,
+		TCCR_B_ptr:	&TCCR3B,
+		prescale:	8,
+		wgm_mode:	(uint8_t) 15,
+	},
+	{	/* TC_MODULE_4 */
+		TIFR_ptr:	&TIFR4,
+		TCNT_ptr:	&TCNT4,
+		ICR_ptr:	&ICR4,
+		TOP_value_p:&OCR4A,
+		TCCR_A_ptr:	&TCCR4A,
+		TCCR_B_ptr:	&TCCR4B,
+		prescale:	8,
+		wgm_mode:	(uint8_t) 15,
+		TOP_value:  TC_20_MS_PERIOD_AT_PS_8,
+		TIMSK_ptr:   &TIMSK4,
+	},
+	{	/* TC_MODULE_5 */
+		TIFR_ptr:	&TIFR5,
+		TCNT_ptr:	&TCNT5,
+		ICR_ptr:	&ICR5,
+		TOP_value_p:&OCR5A,
+		TCCR_A_ptr:	&TCCR5A,
+		TCCR_B_ptr:	&TCCR5B,
+		prescale:	8,
+		wgm_mode:	(uint8_t) 15,
+		TOP_value:  TC_20_MS_PERIOD_AT_PS_8,
+		TIMSK_ptr:   &TIMSK4,
+	}
+};
+
 
 
 /* PUBLIC HELPER FUNCTIONS */
+
+void tc_module_init(int arg)
+{
+	tc_set_com(tc_module_s[arg].TCCR_A_ptr,
+	           TC_CHANNEL_A,
+	           0b00);
+
+	tc_set_com(tc_module_s[arg].TCCR_A_ptr,
+	           TC_CHANNEL_B,
+	           0b00);
+
+	tc_set_com(tc_module_s[arg].TCCR_A_ptr,
+	           TC_CHANNEL_C,
+	           0b00);
+
+	/* set Waveform Generation Mode
+	 * Using mode 15. OCRA holds the TOP value.
+	 */
+
+	tc_set_wgm(tc_module_s[arg].TCCR_A_ptr,
+			   tc_module_s[arg].TCCR_B_ptr,
+			   tc_module_s[arg].wgm_mode);
+
+	tc_set_prescaler(tc_module_s[arg].TCCR_B_ptr,
+	                 tc_module_s[arg].prescale);
+
+	/* This value determines the rate at which the pulses are sent. */
+	/* Store the value in the Input Capture Register */
+
+	if (tc_module_s[arg].TOP_value_p)
+	{
+		*tc_module_s[arg].TOP_value_p = tc_module_s[arg].TOP_value;
+	}
+}
 
 void tc_init_ddr(volatile uint8_t* DDR_ptr,
 		         volatile uint8_t* PORT_ptr,

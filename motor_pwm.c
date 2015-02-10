@@ -14,91 +14,61 @@
 // Highest allowed pulse width: 2400 us
 // Pulse width for speed = 0  : 1320 us
 
-#define MAX_PULSE_WIDTH_CYCLES ((uint16_t) 4800)
-#define MIN_PULSE_WIDTH_CYCLES ((uint16_t) 1100)
+#define MAX_PULSE_WIDTH_CYCLES     ((uint16_t) 4800)
+#define MIN_PULSE_WIDTH_CYCLES     ((uint16_t) 1100)
+#define AT_REST_PULSE_WIDTH_CYCLES ((uint16_t) 2640)
 
 #define PWM_PERIOD_CYCLES ((uint16_t) 40000)
 
 struct motor_registers_s {
-	volatile uint16_t*	OCR_ptr;
-	volatile uint8_t*	DDR_ptr;
-	volatile uint8_t*	PORT_ptr;
-	uint8_t				pin;
-	volatile uint8_t*	TCCR_A_ptr;
-	uint8_t				channel;
+	volatile uint16_t*          OCR_ptr;
+	volatile uint8_t*           DDR_ptr;
+	volatile uint8_t*           PORT_ptr;
+	uint8_t                     pin;
+	uint8_t                     channel;
+	struct tc_module_registers* tc_p;
 };
 
 const struct motor_registers_s motors[3] =
 {
 	{	/* MOTOR_PWM_LEFT
-		 * PB5 ( OC1A/PCINT5 )	Digital pin 11 (PWM)
+		 * PL4 ( OC5B )	Digital pin 45 (PWM)
 		 *
 		 */
-		OCR_ptr:	&OCR1A,
-		DDR_ptr:	&DDRB,
-		PORT_ptr:	&PORTB,
-		pin:		5,
-		TCCR_A_ptr:	&TCCR1A,
-		channel:	TC_CHANNEL_A
+		OCR_ptr:	&OCR5C,
+		DDR_ptr:	&DDRL,
+		PORT_ptr:	&PORTL,
+		pin:		4,
+		channel:	TC_CHANNEL_B,
+		tc_p:		&tc_module_s[TC_MODULE_5]
 	},
 	{	/* MOTOR_PWM_RIGHT
-	 	 * Digital pin 12 (PWM)
+	 	 * PH5 ( OC4C )	Digital pin 8 (PWM)
 	 	 *
 	 	 */
-		OCR_ptr:	&OCR1B,
-		DDR_ptr:	&DDRB,
-		PORT_ptr:	&PORTB,
-		pin:		6,
-		TCCR_A_ptr:	&TCCR1A,
-		channel:	TC_CHANNEL_B
+		OCR_ptr:	&OCR4C,
+		DDR_ptr:	&DDRH,
+		PORT_ptr:	&PORTH,
+		pin:		5,
+		channel:	TC_CHANNEL_C,
+		tc_p:		&tc_module_s[TC_MODULE_4]
 	},
 	{	/* MOTOR_PWM_CENTER
-		 * Digital pin 13 (PWM)
 		 *
+		 * PH4 ( OC4B )	Digital pin 7 (PWM)
 		 */
-		OCR_ptr:	&OCR1C,
-		DDR_ptr:	&DDRB,
-		PORT_ptr:	&PORTB,
-		pin:		7,
-		TCCR_A_ptr:	&TCCR1A,
-		channel:	TC_CHANNEL_C
+		OCR_ptr:	&OCR4B,
+		DDR_ptr:	&DDRH,
+		PORT_ptr:	&PORTH,
+		pin:		4,
+		channel:	TC_CHANNEL_B,
+		tc_p:		&tc_module_s[TC_MODULE_4]
 	}
 };
 
 /* MODULE ENTRY POINTS (PUBLIC FUNCTIONS) */
 
-/*
- * Configure the TC module 1.
- * configuration that is common to one Timer/Counter module.
- */
-void motor_pwm_tc_init(void)
-{
-	/* set Waveform Generation Mode */
-
-	tc_set_wgm(&TCCR1A, &TCCR1B, 0b00001110);
-
-
-	/* output disconnected from the pins
-	 * Compare Output Mode: 0b00
-	 */
-
-	tc_set_com(&TCCR1A, TC_CHANNEL_A, 0b00);
-	tc_set_com(&TCCR1A, TC_CHANNEL_B, 0b00);
-	tc_set_com(&TCCR1A, TC_CHANNEL_C, 0b00);
-
-
-	/* set Timer Counter prescaler */
-
-	tc_set_prescaler(&TCCR1B, 8);
-
-
-	/* This value determines the rate at which the pulses are sent. */
-	/* Store the value in the Input Capture Register */
-	ICR1 = PWM_PERIOD_CYCLES;
-}
-
-
-void motor_pwm_start(int arg, uint16_t pulse_width_cycles)
+void servo_start(int arg, uint16_t pulse_width_cycles)
 {
 	/* initialize the Data Direction Register */
 
@@ -110,19 +80,23 @@ void motor_pwm_start(int arg, uint16_t pulse_width_cycles)
 
 	/* set the Compare Output Mode to non-inverted */
 
-	tc_set_com(motors[arg].TCCR_A_ptr,
+	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
 			   motors[arg].channel,
 			   (uint8_t) 0b00000010); /* non-inverting mode 0b10 */
 
 	/* set the pulse width's initial value */
 
-	motor_pwm_pulse_width_set(arg, pulse_width_cycles);
+	servo_pulse_width_set(arg, AT_REST_PULSE_WIDTH_CYCLES);
+
+	/* set the pulse width's desired initial value */
+
+	servo_pulse_width_set(arg, pulse_width_cycles);
 }
 
-void motor_pwm_stop(int arg)
+void servo_stop(int arg)
 {
 	/* disconnect output pins from the Timer/Counter module */
-	tc_set_com(motors[arg].TCCR_A_ptr,
+	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
 			   motors[arg].channel,
 			   0b00);
 
@@ -132,8 +106,10 @@ void motor_pwm_stop(int arg)
 				motors[arg].pin, 0, 1);
 }
 
-/* Sets the pulse width in cycles by changing the value of the Output Compare Register */
-void motor_pwm_pulse_width_set(int arg, uint16_t pulse_width_cycles)
+/* Sets the pulse width in cycles by changing the
+ * value of the Output Compare Register
+ */
+void servo_pulse_width_set(int arg, uint16_t pulse_width_cycles)
 {
 	if (pulse_width_cycles <= MAX_PULSE_WIDTH_CYCLES &&
 		pulse_width_cycles >= MIN_PULSE_WIDTH_CYCLES)
@@ -142,7 +118,7 @@ void motor_pwm_pulse_width_set(int arg, uint16_t pulse_width_cycles)
 	}
 }
 
-uint16_t motor_pwm_pulse_width_get(int arg)
+uint16_t servo_pulse_width_get(int arg)
 {
 	return *(motors[arg].OCR_ptr);
 }
