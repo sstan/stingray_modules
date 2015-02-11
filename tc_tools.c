@@ -50,7 +50,7 @@ const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES] =
 		prescale:	8,
 		wgm_mode:	(uint8_t) 15,
 		TOP_value:  TC_20_MS_PERIOD_AT_PS_8,
-		TIMSK_ptr:   &TIMSK4,
+		TIMSK_ptr:   &TIMSK5,
 	}
 };
 

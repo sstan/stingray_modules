@@ -35,7 +35,7 @@ const struct motor_registers_s motors[3] =
 		 * PL4 ( OC5B )	Digital pin 45 (PWM)
 		 *
 		 */
-		OCR_ptr:	&OCR5C,
+		OCR_ptr:	&OCR5B,
 		DDR_ptr:	&DDRL,
 		PORT_ptr:	&PORTL,
 		pin:		4,

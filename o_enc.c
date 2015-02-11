@@ -35,13 +35,13 @@ static const struct encoder_registers_s encoders[ENC_NUMBER_OF_ENCODERS] =
 	{	/* ENC_ID_ENCODER_LEFT */
 		PORT_ptr:	&PORTL,
 		DDR_ptr:	&DDRL,
-		pin:		0,			/* Port L 0 (pin PL0) Digital pin 49 */
+		pin:		0,			/* Port L 0 (pin PL0) Digital pin 49  PL0 ( ICP4 ) */
 		tc_p:		&tc_module_s[TC_MODULE_4]
 	},
-	{
+	{   /* ENC_ID_ENCODER_RIGHT */
 		PORT_ptr:	&PORTL,
 		DDR_ptr:	&DDRL,
-		pin:		1,			/* Port L 1 (pin PL1) */
+		pin:		1,			/* Port L 1 (pin PL1)  ( ICP5 )  Digital pin 48*/
 		tc_p:		&tc_module_s[TC_MODULE_5]
 	}
 };
