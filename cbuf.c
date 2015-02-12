@@ -9,92 +9,86 @@
 
 #include "cbuf.h"
 
-struct cbuf_t {
-	uint16_t tcnt[CBUF_ENTRIES];
-	uint32_t ovf_cntr[CBUF_ENTRIES];
-	uint8_t  head_ix;
-	uint8_t  tail_ix;
-	uint8_t  size;
-	uint16_t cycles_per_ovf;
-	uint16_t count;
+typedef struct cbuf_entry_t cbuf_entry_t;
+
+struct cbuf_entry_t {
+	uint16_t tcnt;
+	uint32_t ovf_cntr;
+	cbuf_entry_t* next;
+	cbuf_entry_t* prev;
 };
 
-static struct cbuf_t cbuf_buffer_g[CBUF_NUMBER_OF_BUFFERS];
+struct cbuf_t {
+	cbuf_entry_t buf_elem[CBUF_ENTRIES];
+	cbuf_entry_t* head_p;
+	uint16_t cycles_per_ovf;
+	uint32_t count;
+};
+
+
+
+static struct cbuf_t buf_g[CBUF_NUMBER_OF_BUFFERS];
 
 void cbuf_reset(uint8_t cbuf_id, uint16_t cycles_per_ovf)
 {
 	int i;
 
-	cbuf_buffer_g[cbuf_id].head_ix        = 0;
-	cbuf_buffer_g[cbuf_id].tail_ix        = 0;
-	cbuf_buffer_g[cbuf_id].size           = 0;
-	cbuf_buffer_g[cbuf_id].cycles_per_ovf = cycles_per_ovf;
-	cbuf_buffer_g[cbuf_id].count          = 0;
+	buf_g[cbuf_id].head_p = &buf_g[cbuf_id].buf_elem[0];
+	buf_g[cbuf_id].cycles_per_ovf = cycles_per_ovf;
+	buf_g[cbuf_id].count = 0;
+
+	buf_g[cbuf_id].buf_elem[0].next =&buf_g[cbuf_id].buf_elem[1];
+	buf_g[cbuf_id].buf_elem[0].prev =&buf_g[cbuf_id].buf_elem[CBUF_ENTRIES-1];
+
+	buf_g[cbuf_id].buf_elem[CBUF_ENTRIES-1].next =&buf_g[cbuf_id].buf_elem[0];
+	buf_g[cbuf_id].buf_elem[CBUF_ENTRIES-1].prev =&buf_g[cbuf_id].buf_elem[CBUF_ENTRIES-2];
+
+	for (i = 1; i < CBUF_ENTRIES - 1; i++)
+	{
+		buf_g[cbuf_id].buf_elem[i].next = &buf_g[cbuf_id].buf_elem[i+1];
+		buf_g[cbuf_id].buf_elem[i].prev = &buf_g[cbuf_id].buf_elem[i-1];
+	}
 
 	for (i = 0; i < CBUF_ENTRIES; i++)
 	{
-		cbuf_buffer_g[cbuf_id].ovf_cntr[i] = 0;
-		cbuf_buffer_g[cbuf_id].tcnt    [i] = 0;
+		buf_g[cbuf_id].buf_elem[i].ovf_cntr = 0;
+		buf_g[cbuf_id].buf_elem[i].tcnt     = 0;
 	}
 }
 
 void cbuf_write(uint8_t cbuf_id, uint16_t tcnt, uint32_t ovf_cntr)
 {
-	uint8_t next_ix = cbuf_buffer_g[cbuf_id].head_ix + 1;
-
-	if (next_ix == CBUF_ENTRIES)
-	{
-		next_ix = 0;
-	}
-
-	cbuf_buffer_g[cbuf_id].tcnt    [next_ix] = tcnt;
-	cbuf_buffer_g[cbuf_id].ovf_cntr[next_ix] = ovf_cntr;
-
-	cbuf_buffer_g[cbuf_id].head_ix = next_ix;
-	cbuf_buffer_g[cbuf_id].count++;
-	cbuf_buffer_g[cbuf_id].size++;
+	buf_g[cbuf_id].head_p->ovf_cntr = ovf_cntr;
+	buf_g[cbuf_id].head_p->tcnt     = tcnt;
+	buf_g[cbuf_id].head_p           = buf_g[cbuf_id].head_p->next;
+	buf_g[cbuf_id].count++;
 }
 
-int cbuf_read_timestamp(uint8_t cbuf_id, uint32_t* timestamp)
+void cbuf_read_n_timestamps(uint8_t cbuf_id, int n, uint32_t timestamp[])
 {
-	uint16_t tcnt;
-	uint32_t ovf_cnt;
+	cbuf_entry_t* ent_p;
+
 	uint16_t cpo;
-	uint8_t tail;
 
-	if (cbuf_buffer_g[cbuf_id].size == 0)
+	int i;
+
+	cpo = buf_g[cbuf_id].cycles_per_ovf;
+
+	ent_p = buf_g[cbuf_id].head_p->prev;
+
+	for (i = 0; i < n; i++)
 	{
-		return 0;
+		timestamp[i] = ent_p->tcnt + cpo*ent_p->ovf_cntr;
+		ent_p = ent_p->prev;
 	}
-
-	tail    = cbuf_buffer_g[cbuf_id].tail_ix;
-
-	tcnt    = cbuf_buffer_g[cbuf_id].tcnt          [tail];
-	ovf_cnt = cbuf_buffer_g[cbuf_id].ovf_cntr      [tail];
-	cpo     = cbuf_buffer_g[cbuf_id].cycles_per_ovf;
-
-	*timestamp = (uint32_t)tcnt + cpo*ovf_cnt;
-
-
-	tail += 1;
-
-	if (tail == CBUF_ENTRIES)
-	{
-		tail = 0;
-	}
-
-	cbuf_buffer_g[cbuf_id].tail_ix = tail;
-	cbuf_buffer_g[cbuf_id].size--;
-
-	return 1;
 }
 
-uint8_t cbuf_size(uint8_t cbuf_id)
+uint32_t cbuf_count(uint8_t cbuf_id)
 {
-	return cbuf_buffer_g[cbuf_id].size;
+	return buf_g[cbuf_id].count;
 }
 
-uint16_t cbuf_count(uint8_t cbuf_id)
+uint16_t cbuf_get_cycles_per_ovf(uint8_t cbuf_id)
 {
-	return cbuf_buffer_g[cbuf_id].count;
+	return buf_g[cbuf_id].cycles_per_ovf;
 }

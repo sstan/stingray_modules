@@ -57,7 +57,7 @@ static uint32_t tov_cntr[ENC_NUMBER_OF_ENCODERS];
 
 void enc_init(uint8_t enc_id)
 {
-	cbuf_reset(enc_id, 40000);
+	cbuf_reset(enc_id, (encoders[enc_id].tc_p->TOP_value + 1));
 
 	/* The Input Capture Pins are INPUTS. This call will
 	 * set the Data Direction Registers accordingly.
@@ -78,16 +78,21 @@ void enc_init(uint8_t enc_id)
 	*encoders[enc_id].tc_p->TIMSK_ptr  |= (1 << 0);
 }
 
-int enc_read_timestamp(uint8_t enc_id, uint32_t* timestamp)
+void enc_read_n_timestamps(uint8_t enc_id, int n, uint32_t timestamp[])
 {
-	return cbuf_read_timestamp(enc_id, timestamp);
+	cbuf_read_n_timestamps(enc_id, n, timestamp);
 }
 
-void enc_get_time(uint8_t enc_id, uint32_t* ts)
+uint32_t enc_time_elapsed_since(uint8_t enc_id, uint32_t timestamp)
 {
-	/* TO DO: atomically */
-	*ts =  *encoders[enc_id].tc_p->TCNT_ptr;
-	*ts += (encoders[enc_id].tc_p->TOP_value + 1)*tov_cntr[enc_id];
+	uint32_t cur_ts;
+	uint16_t tcnt;
+
+	tcnt = *encoders[enc_id].tc_p->TCNT_ptr;
+
+	cur_ts = tcnt + tov_cntr[enc_id]*cbuf_get_cycles_per_ovf(enc_id);
+
+	return cur_ts - timestamp;
 }
 
 uint16_t enc_get_count(uint8_t enc_id)
@@ -97,7 +102,7 @@ uint16_t enc_get_count(uint8_t enc_id)
 
 void enc_reset(uint8_t enc_id)
 {
-	cbuf_reset(enc_id, 40000);
+	cbuf_reset(enc_id, (encoders[enc_id].tc_p->TOP_value + 1));
 }
 
 /* INTERNAL FUNCTIONS */
