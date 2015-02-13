@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include "tc_tools.h"
 
+
+/* Using the Waveform Generation Mode 15 ---> OCRA holds the TOP value. */
 const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES] =
 {
 	{	/* TC_MODULE_1 */
@@ -60,6 +62,8 @@ const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES] =
 
 void tc_module_init(int arg)
 {
+	/* output compare mode 0 (pin is disconnected from the TC module) */
+
 	tc_set_com(tc_module_s[arg].TCCR_A_ptr,
 	           TC_CHANNEL_A,
 	           0b00);
@@ -72,9 +76,7 @@ void tc_module_init(int arg)
 	           TC_CHANNEL_C,
 	           0b00);
 
-	/* set Waveform Generation Mode
-	 * Using mode 15. OCRA holds the TOP value.
-	 */
+	/* Set the Waveform Generation Mode */
 
 	tc_set_wgm(tc_module_s[arg].TCCR_A_ptr,
 			   tc_module_s[arg].TCCR_B_ptr,

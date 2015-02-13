@@ -25,8 +25,6 @@ struct cbuf_t {
 	uint32_t count;
 };
 
-
-
 static struct cbuf_t buf_g[CBUF_NUMBER_OF_BUFFERS];
 
 void cbuf_reset(uint8_t cbuf_id, uint16_t cycles_per_ovf)
@@ -81,6 +79,7 @@ void cbuf_read_n_timestamps(uint8_t cbuf_id, int n, uint32_t timestamp[])
 		timestamp[i] = ent_p->tcnt + cpo*ent_p->ovf_cntr;
 		ent_p = ent_p->prev;
 	}
+
 }
 
 uint32_t cbuf_count(uint8_t cbuf_id)
