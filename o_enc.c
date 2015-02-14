@@ -15,13 +15,12 @@
 #include "cbuf.h"
 
 #define TIFR_ICF_MASK ((uint8_t) 0b00100000)
-#define BUF_ENTRIES 20
 
 static inline void increment_tov_cntr(uint8_t enc_id);
 static inline void handle_transition(uint8_t enc_id);
 static inline void enc_toggle_trigger_edge(uint8_t enc_id);
 
-struct encoder_registers_s {
+struct encoder_config_t {
 	volatile uint8_t*			PORT_ptr;
 	volatile uint8_t*			DDR_ptr;
 	uint8_t						pin;
@@ -32,18 +31,20 @@ struct encoder_registers_s {
  * that are needed to use the optical encoders.
  *
  */
-static const struct encoder_registers_s encoders[ENC_NUMBER_OF_ENCODERS] =
+static const struct encoder_config_t encoders[ENC_NUMBER_OF_ENCODERS] =
 {
 	{	/* ENC_ID_ENCODER_LEFT */
+		/* Port L (PL0) Digital pin 49 ( ICP4 )  */
 		PORT_ptr:	&PORTL,
 		DDR_ptr:	&DDRL,
-		pin:		0,			/* Port L 0 (pin PL0) Digital pin 49  PL0 ( ICP4 ) */
+		pin:		0,
 		tc_p:		&tc_module_s[TC_MODULE_4]
 	},
 	{   /* ENC_ID_ENCODER_RIGHT */
+		/* Port L (PL1) Digital pin 48 ( ICP5 ) */
 		PORT_ptr:	&PORTL,
 		DDR_ptr:	&DDRL,
-		pin:		1,			/* Port L 1 (pin PL1)  ( ICP5 )  Digital pin 48*/
+		pin:		1,
 		tc_p:		&tc_module_s[TC_MODULE_5]
 	}
 };
@@ -52,12 +53,14 @@ static const struct encoder_registers_s encoders[ENC_NUMBER_OF_ENCODERS] =
  * An overflow happens when TCNT is equal to TOP.
  */
 static uint32_t tov_cntr[ENC_NUMBER_OF_ENCODERS];
+static uint16_t last_icr[ENC_NUMBER_OF_ENCODERS];
+static uint32_t incr_ctr[ENC_NUMBER_OF_ENCODERS];
 
 /* MODULE ENTRY POINTS */
 
 void enc_init(uint8_t enc_id)
 {
-	cbuf_reset(enc_id, (encoders[enc_id].tc_p->TOP_value + 1));
+	cbuf_reset(enc_id);
 
 	/* The Input Capture Pins are INPUTS. This call will
 	 * set the Data Direction Registers accordingly.
@@ -78,31 +81,38 @@ void enc_init(uint8_t enc_id)
 	*encoders[enc_id].tc_p->TIMSK_ptr  |= (1 << 0);
 }
 
-void enc_read_n_timestamps(uint8_t enc_id, int n, uint32_t timestamp[])
+int enc_read(uint8_t enc_id, uint32_t tbl[])
 {
-	cbuf_read_n_timestamps(enc_id, n, timestamp);
+	return cbuf_read(enc_id, tbl);
 }
 
-uint32_t enc_time_elapsed_since(uint8_t enc_id, uint32_t timestamp)
+int enc_new_data(enc_id)
 {
-	uint32_t cur_ts;
+	return cbuf_get_size(enc_id);
+}
+
+uint32_t enc_get_ticks(uint8_t enc_id)
+{
 	uint16_t tcnt;
+	uint16_t cpo;
+	uint32_t ticks;
 
 	tcnt = *encoders[enc_id].tc_p->TCNT_ptr;
+	cpo  =  encoders[enc_id].tc_p->TOP_value + 1;
 
-	cur_ts = tcnt + tov_cntr[enc_id]*cbuf_get_cycles_per_ovf(enc_id);
+	ticks = cpo*tov_cntr[enc_id] + tcnt;
 
-	return cur_ts - timestamp;
+	return ticks;
 }
 
-uint16_t enc_get_count(uint8_t enc_id)
+uint32_t enc_get_count(uint8_t enc_id)
 {
-	return cbuf_count(enc_id);
+	return incr_ctr[enc_id];
 }
 
 void enc_reset(uint8_t enc_id)
 {
-	cbuf_reset(enc_id, (encoders[enc_id].tc_p->TOP_value + 1));
+	cbuf_reset(enc_id);
 }
 
 /* INTERNAL FUNCTIONS */
@@ -114,15 +124,38 @@ static inline void increment_tov_cntr(uint8_t enc_id)
 
 static inline void handle_transition(uint8_t enc_id)
 {
-	cbuf_write(enc_id,
-               *encoders[enc_id].tc_p->ICR_ptr,
-               tov_cntr[enc_id]);
+	uint32_t delta;
+	uint16_t cpo;
+	uint16_t icr;
+	uint32_t tov;
 
 	enc_toggle_trigger_edge(enc_id);
 
 	/* clear the Input Capture Flag */
 
 	*encoders[enc_id].tc_p->TIFR_ptr |= (1 << 5);
+
+	cpo =  encoders[enc_id].tc_p->TOP_value + 1;
+	icr = *encoders[enc_id].tc_p->ICR_ptr;
+	tov =  tov_cntr[enc_id];
+
+	tov_cntr[enc_id] = 0;
+
+
+
+
+	if (tov == 0)
+	{
+		delta = icr - last_icr[enc_id];
+	}
+	else
+	{
+		delta = icr + tov*cpo - last_icr[enc_id];
+	}
+
+	cbuf_write(enc_id, delta);
+
+	last_icr[enc_id] = icr;
 }
 
 static inline void enc_toggle_trigger_edge(uint8_t enc_id)
@@ -153,10 +186,12 @@ ISR(TIMER5_OVF_vect)
 
 ISR(TIMER4_CAPT_vect)
 {
+	incr_ctr[ENC_ID_ENCODER_LEFT]++;
 	handle_transition(ENC_ID_ENCODER_LEFT);
 }
 
 ISR(TIMER5_CAPT_vect)
 {
+	incr_ctr[ENC_ID_ENCODER_RIGHT]++;
 	handle_transition(ENC_ID_ENCODER_RIGHT);
 }

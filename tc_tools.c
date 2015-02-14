@@ -39,7 +39,7 @@ const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES] =
 		TCCR_B_ptr:	&TCCR4B,
 		prescale:	8,
 		wgm_mode:	(uint8_t) 15,
-		TOP_value:  TC_20_MS_PERIOD_AT_PS_8,
+		TOP_value:  TC_20_MS_PERIOD_AT_PS_8 - 1,
 		TIMSK_ptr:   &TIMSK4,
 	},
 	{	/* TC_MODULE_5 */
@@ -51,7 +51,7 @@ const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES] =
 		TCCR_B_ptr:	&TCCR5B,
 		prescale:	8,
 		wgm_mode:	(uint8_t) 15,
-		TOP_value:  TC_20_MS_PERIOD_AT_PS_8,
+		TOP_value:  TC_20_MS_PERIOD_AT_PS_8 - 1,
 		TIMSK_ptr:   &TIMSK5,
 	}
 };

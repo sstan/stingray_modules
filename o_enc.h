@@ -20,11 +20,11 @@ extern "C" {
 
 void enc_init(uint8_t enc_id);
 
-void enc_read_n_timestamps(uint8_t enc_id, int n, uint32_t timestamp[]);
+int enc_read(uint8_t enc_id, uint32_t tbl[]);
 
-uint32_t enc_time_elapsed_since(uint8_t enc_id, uint32_t timestamp);
+uint32_t enc_get_ticks(uint8_t enc_id);
 
-uint16_t enc_get_count(uint8_t enc_id);
+uint32_t enc_get_count(uint8_t enc_id);
 
 void enc_reset(uint8_t enc_id);
 

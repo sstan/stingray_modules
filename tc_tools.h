@@ -16,16 +16,19 @@ extern "C" {
 
 #include <avr/io.h>
 
-#define TC_CHANNEL_A 0
-#define TC_CHANNEL_B 1
-#define TC_CHANNEL_C 2
-
+/* 16-bit Timer Counter Modules */
 #define TC_MODULE_1				0
 #define TC_MODULE_3				1
 #define TC_MODULE_4				2
 #define TC_MODULE_5				3
 #define TC_NUMBER_OF_MODULES	4
 
+/* Timer Counter Channels */
+#define TC_CHANNEL_A 0
+#define TC_CHANNEL_B 1
+#define TC_CHANNEL_C 2
+
+/* Number of 500-nanosecond cycles in 20 milliseconds. */
 #define TC_20_MS_PERIOD_AT_PS_8 (uint16_t) 40000
 
 struct tc_module_registers {
@@ -44,7 +47,7 @@ struct tc_module_registers {
 extern const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES];
 
 
-/* Timer/Counter Helper Functions */
+/* Timer Counter Helper Functions */
 
 void tc_module_init(int arg);
 

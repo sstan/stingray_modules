@@ -14,11 +14,9 @@
 // Highest allowed pulse width: 2400 us
 // Pulse width for speed = 0  : 1320 us
 
-#define MAX_PULSE_WIDTH_CYCLES     ((uint16_t) 4800)
-#define MIN_PULSE_WIDTH_CYCLES     ((uint16_t) 1100)
-#define AT_REST_PULSE_WIDTH_CYCLES ((uint16_t) 2640)
-
-#define PWM_PERIOD_CYCLES ((uint16_t) 40000)
+#define MAX_PULSE_WIDTH_TICKS     ((uint16_t) 4800)
+#define MIN_PULSE_WIDTH_TICKS     ((uint16_t) 1100)
+#define INITIAL_PULSE_WIDTH_TICKS ((uint16_t) 2640)
 
 struct motor_registers_s {
 	volatile uint16_t*          OCR_ptr;
@@ -70,7 +68,7 @@ const struct motor_registers_s motors[3] =
 
 void servo_start(int arg, uint16_t pulse_width_cycles)
 {
-	/* initialize the Data Direction Register */
+	/* Initialize the Data Direction Register of the OCnX pin. */
 
 	tc_init_ddr(motors[arg].DDR_ptr,
 			    motors[arg].PORT_ptr,
@@ -78,7 +76,7 @@ void servo_start(int arg, uint16_t pulse_width_cycles)
 			    0,			/* output 0 (0V) */
 			    1);			/* OUTPUT */
 
-	/* set the Compare Output Mode to non-inverted */
+	/* Set the Compare Output Mode to non-inverted. */
 
 	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
 			   motors[arg].channel,
@@ -86,7 +84,7 @@ void servo_start(int arg, uint16_t pulse_width_cycles)
 
 	/* set the pulse width's initial value */
 
-	servo_pulse_width_set(arg, AT_REST_PULSE_WIDTH_CYCLES);
+	servo_pulse_width_set(arg, INITIAL_PULSE_WIDTH_TICKS);
 
 	/* set the pulse width's desired initial value */
 
@@ -111,8 +109,8 @@ void servo_stop(int arg)
  */
 void servo_pulse_width_set(int arg, uint16_t pulse_width_cycles)
 {
-	if (pulse_width_cycles <= MAX_PULSE_WIDTH_CYCLES &&
-		pulse_width_cycles >= MIN_PULSE_WIDTH_CYCLES)
+	if (pulse_width_cycles <= MAX_PULSE_WIDTH_TICKS &&
+		pulse_width_cycles >= MIN_PULSE_WIDTH_TICKS)
 	{
 		*(motors[arg].OCR_ptr) = pulse_width_cycles;
 	}
