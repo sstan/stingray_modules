@@ -55,12 +55,13 @@ static const struct encoder_config_t encoders[ENC_NUMBER_OF_ENCODERS] =
 static uint32_t tov_cntr[ENC_NUMBER_OF_ENCODERS];
 static uint16_t last_icr[ENC_NUMBER_OF_ENCODERS];
 static uint32_t incr_ctr[ENC_NUMBER_OF_ENCODERS];
+static uint32_t tov_cntr_cumulative[ENC_NUMBER_OF_ENCODERS];
 
 /* MODULE ENTRY POINTS */
 
 void enc_init(uint8_t enc_id)
 {
-	cbuf_reset(enc_id);
+	enc_reset(enc_id);
 
 	/* The Input Capture Pins are INPUTS. This call will
 	 * set the Data Direction Registers accordingly.
@@ -86,7 +87,7 @@ int enc_read(uint8_t enc_id, uint32_t tbl[])
 	return cbuf_read(enc_id, tbl);
 }
 
-int enc_new_data(enc_id)
+int enc_new_data(uint8_t enc_id)
 {
 	return cbuf_get_size(enc_id);
 }
@@ -100,7 +101,7 @@ uint32_t enc_get_ticks(uint8_t enc_id)
 	tcnt = *encoders[enc_id].tc_p->TCNT_ptr;
 	cpo  =  encoders[enc_id].tc_p->TOP_value + 1;
 
-	ticks = cpo*tov_cntr[enc_id] + tcnt;
+	ticks = cpo*tov_cntr_cumulative[enc_id] + tcnt;
 
 	return ticks;
 }
@@ -113,6 +114,12 @@ uint32_t enc_get_count(uint8_t enc_id)
 void enc_reset(uint8_t enc_id)
 {
 	cbuf_reset(enc_id);
+
+	tov_cntr_cumulative[enc_id] = 0;
+	incr_ctr[enc_id] = 0;
+	last_icr[enc_id] = 0;
+	tov_cntr[enc_id] = 0;
+
 }
 
 /* INTERNAL FUNCTIONS */
@@ -120,6 +127,7 @@ void enc_reset(uint8_t enc_id)
 static inline void increment_tov_cntr(uint8_t enc_id)
 {
 	tov_cntr[enc_id]++;
+	tov_cntr_cumulative[enc_id]++;
 }
 
 static inline void handle_transition(uint8_t enc_id)
@@ -140,9 +148,6 @@ static inline void handle_transition(uint8_t enc_id)
 	tov =  tov_cntr[enc_id];
 
 	tov_cntr[enc_id] = 0;
-
-
-
 
 	if (tov == 0)
 	{
