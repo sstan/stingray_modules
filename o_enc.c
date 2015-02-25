@@ -20,7 +20,8 @@ static inline void increment_tov_cntr(uint8_t enc_id);
 static inline void handle_transition(uint8_t enc_id);
 static inline void enc_toggle_trigger_edge(uint8_t enc_id);
 
-struct encoder_config_t {
+struct encoder_config_t
+{
 	volatile uint8_t*			PORT_ptr;
 	volatile uint8_t*			DDR_ptr;
 	uint8_t						pin;
@@ -137,6 +138,8 @@ static inline void handle_transition(uint8_t enc_id)
 	uint16_t icr;
 	uint32_t tov;
 
+	incr_ctr[enc_id]++;
+
 	enc_toggle_trigger_edge(enc_id);
 
 	/* clear the Input Capture Flag */
@@ -191,12 +194,10 @@ ISR(TIMER5_OVF_vect)
 
 ISR(TIMER4_CAPT_vect)
 {
-	incr_ctr[ENC_ID_ENCODER_LEFT]++;
 	handle_transition(ENC_ID_ENCODER_LEFT);
 }
 
 ISR(TIMER5_CAPT_vect)
 {
-	incr_ctr[ENC_ID_ENCODER_RIGHT]++;
 	handle_transition(ENC_ID_ENCODER_RIGHT);
 }

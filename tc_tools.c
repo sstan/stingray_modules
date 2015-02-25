@@ -8,8 +8,7 @@
 #include <stdint.h>
 #include "tc_tools.h"
 
-
-/* Using the Waveform Generation Mode 15 ---> OCRA holds the TOP value. */
+/* Using the Waveform Generation Mode 15 (OCRA holds the TOP value). */
 const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES] =
 {
 	{	/* TC_MODULE_1 */
@@ -62,7 +61,9 @@ const struct tc_module_registers tc_module_s[TC_NUMBER_OF_MODULES] =
 
 void tc_module_init(int arg)
 {
-	/* output compare mode 0 (pin is disconnected from the TC module) */
+	/* For all the channels, set the output compare mode
+	 * to 0 (pin is disconnected from the TC module).
+	 */
 
 	tc_set_com(tc_module_s[arg].TCCR_A_ptr,
 	           TC_CHANNEL_A,
@@ -120,6 +121,7 @@ void tc_init_ddr(volatile uint8_t* DDR_ptr,
 }
 
 /* set the Compare Output Mode for channel A, B, or C */
+
 void tc_set_com(volatile uint8_t* TCCR_A_ptr,
 		        uint8_t channel,
 				uint8_t co_mode)
@@ -167,6 +169,7 @@ void tc_set_com(volatile uint8_t* TCCR_A_ptr,
 }
 
 /* set the waveform generation mode */
+
 void tc_set_wgm(volatile uint8_t* TCCR_A_ptr,
 		        volatile uint8_t* TCCR_B_ptr,
 				uint8_t wgm)
@@ -233,7 +236,7 @@ default_case: /* DEFAULT */
 		break;
 	}
 
-	/* write the new value to the register */
+	/* write the new value to the configuration register */
 
 	*TCCR_B_ptr = tccrb;
 }

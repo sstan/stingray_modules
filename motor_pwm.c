@@ -10,15 +10,13 @@
 #include "motor_pwm.h"
 #include "tc_tools.h"
 
-// Lowest allowed pulse width : 550  us
-// Highest allowed pulse width: 2400 us
-// Pulse width for speed = 0  : 1320 us
-
 #define MAX_PULSE_WIDTH_TICKS     ((uint16_t) 4800)
 #define MIN_PULSE_WIDTH_TICKS     ((uint16_t) 1100)
 #define INITIAL_PULSE_WIDTH_TICKS ((uint16_t) 2640)
+#define NUMBER_OF_SERVOS          3
 
-struct motor_registers_s {
+struct motor_registers_s
+{
 	volatile uint16_t*          OCR_ptr;
 	volatile uint8_t*           DDR_ptr;
 	volatile uint8_t*           PORT_ptr;
@@ -27,7 +25,7 @@ struct motor_registers_s {
 	struct tc_module_registers* tc_p;
 };
 
-const struct motor_registers_s motors[3] =
+const struct motor_registers_s motors[NUMBER_OF_SERVOS] =
 {
 	{	/* MOTOR_PWM_LEFT
 		 * PL4 ( OC5B )	Digital pin 45 (PWM)
@@ -66,8 +64,12 @@ const struct motor_registers_s motors[3] =
 
 /* MODULE ENTRY POINTS (PUBLIC FUNCTIONS) */
 
-void servo_start(int arg, uint16_t pulse_width_cycles)
+void servo_start(int arg)
 {
+	/* OCR must contain a valid value before the servo is started. */
+
+	servo_pulse_width_set(arg, servo_pulse_width_get(arg));
+
 	/* Initialize the Data Direction Register of the OCnX pin. */
 
 	tc_init_ddr(motors[arg].DDR_ptr,
@@ -81,24 +83,18 @@ void servo_start(int arg, uint16_t pulse_width_cycles)
 	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
 			   motors[arg].channel,
 			   (uint8_t) 0b00000010); /* non-inverting mode 0b10 */
-
-	/* set the pulse width's initial value */
-
-	servo_pulse_width_set(arg, INITIAL_PULSE_WIDTH_TICKS);
-
-	/* set the pulse width's desired initial value */
-
-	servo_pulse_width_set(arg, pulse_width_cycles);
 }
 
 void servo_stop(int arg)
 {
-	/* disconnect output pins from the Timer/Counter module */
+	/* Disconnect the output pin from the Timer/Counter module. */
+
 	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
 			   motors[arg].channel,
 			   0b00);
 
-	/* set them to output 0V */
+	/* Set the pin as an output of 0. */
+
 	tc_init_ddr(motors[arg].DDR_ptr,
 			    motors[arg].PORT_ptr,
 				motors[arg].pin, 0, 1);

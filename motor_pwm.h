@@ -21,7 +21,7 @@ extern "C" {
 
 /* Motor PWM module entry points */
 
-void servo_start(int arg, uint16_t ticks);
+void servo_start(int arg);
 
 void servo_stop(int arg);
 
