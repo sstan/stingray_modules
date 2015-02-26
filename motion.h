@@ -128,42 +128,6 @@ void motion_servo_stop(int arg);
 int motion_enc_read(int arg, uint32_t* val);
 
 
-/* motion_enc_get_count -- input capture event counter
- *
- * This function returns the number of input capture events that have
- * occurred since the last reset. Each input capture event corresponds
- * to an optical encoder increment.
- *
- * An optical encoder increment represents an angular rotation
- * of 360/64 degrees.
- *
- * Parameters:
- *   - int arg
- *     The valid options are:
- *         MOTION_WHEEL_LEFT
- *         MOTION_WHEEL_RIGHT
- *
- * Return value:
- *   - The count (the number of input capture events)
- *
- */
-uint32_t motion_enc_get_count(int arg);
-
-
-/* motion_enc_reset_count -- Clear the input capture event counter
- *
- * This function resets an input capture event counter.
- *
- * Parameters:
- *   - int arg
- *     The valid options are:
- *         MOTION_WHEEL_LEFT
- *         MOTION_WHEEL_RIGHT
- *
- */
-void motion_enc_reset_count(int arg);
-
-
 /* motion_enc_get_teslice -- time elapsed since the last input capture event
  *
  * This function returns the number of ticks elapsed since the last input

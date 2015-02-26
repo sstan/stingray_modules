@@ -1,7 +1,7 @@
 /*
  * motor_pwm.c
  *
- *  Created on: Jan 23, 2015
+ *  Created on: Feb 25, 2015
  *      Author: sstan
  */
 
@@ -9,21 +9,39 @@
 
 #include "motion.h"
 
-// Module Defines
-//Servo motors
-#define MAX_PULSE_WIDTH_TICKS     ((uint16_t) 4800)
-#define MIN_PULSE_WIDTH_TICKS     ((uint16_t) 1100)
-#define INITIAL_PULSE_WIDTH_TICKS ((uint16_t) 2640)
-#define NUMBER_OF_SERVOS          3
-// Encoders
-#define ENC_NUMBER_OF_ENCODERS 	2
-// Timer Defines
-/* Timer/Counter Channels */
-#define TC_CHANNEL_A 0
-#define TC_CHANNEL_B 1
-#define TC_CHANNEL_C 2
-#define TC_MODULE_4				0
-#define TC_MODULE_5				1
+
+/**************************************************
+ *              Forward Declarations              *
+ **************************************************/
+
+
+
+/* Servo Motor DEFINES */
+
+#define MAX_PULSE_WIDTH_TICKS       ((uint16_t) 4800)
+#define MIN_PULSE_WIDTH_TICKS       ((uint16_t) 1100)
+#define INITIAL_PULSE_WIDTH_TICKS   ((uint16_t) 2640)
+#define NUMBER_OF_SERVOS            3
+
+/* Encoders DEFINES */
+
+#define ENC_NUMBER_OF_ENCODERS      2
+
+/* Timer/Counter DEFINES */
+
+#define TC_MODULE_4                 0
+#define TC_MODULE_5                 1
+
+#define TC_CHANNEL_A                0
+#define TC_CHANNEL_B                1
+#define TC_CHANNEL_C                2
+
+#define TC_OCM_NON_INVERTED         ((uint8_t) 2)
+
+/* Forward Declarations */
+
+
+/* Servo motor structures */
 
 struct motor_registers_s
 {
@@ -35,7 +53,7 @@ struct motor_registers_s
 	struct tc_module_registers* tc_p;
 };
 
-const struct motor_registers_s motors[NUMBER_OF_SERVOS] =
+const struct motor_registers_s motors[] =
 {
 	{	/* MOTOR_PWM_LEFT
 		 * PL4 ( OC5B )	Digital pin 45 (PWM)
@@ -76,11 +94,15 @@ const struct motor_registers_s motors[NUMBER_OF_SERVOS] =
 
 void servo_start(int arg)
 {
-	/* OCR must contain a valid value before the servo is started. */
+    /* This call will ensure that the Output Compare Register
+     * contains a valid value before the servo is started.
+     */
 
 	servo_pulse_width_set(arg, servo_pulse_width_get(arg));
 
-	/* Initialize the Data Direction Register of the OCnX pin. */
+    /* The OCnX pin needs to be an output.
+     * Initialize the Data Direction Register of the OCnX pin.
+     */
 
 	tc_init_ddr(motors[arg].DDR_ptr,
 			    motors[arg].PORT_ptr,
@@ -92,22 +114,22 @@ void servo_start(int arg)
 
 	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
 			   motors[arg].channel,
-			   (uint8_t) 0b00000010); /* non-inverting mode 0b10 */
+               TC_OCM_NON_INVERTED); /* non-inverting mode */
 }
 
 void servo_stop(int arg)
 {
+    /* Set the pin as an output of 0V. */
+
+    tc_init_ddr(motors[arg].DDR_ptr,
+                motors[arg].PORT_ptr,
+                motors[arg].pin, 0, 1);
+
 	/* Disconnect the output pin from the Timer/Counter module. */
 
 	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
 			   motors[arg].channel,
 			   0b00);
-
-	/* Set the pin as an output of 0. */
-
-	tc_init_ddr(motors[arg].DDR_ptr,
-			    motors[arg].PORT_ptr,
-				motors[arg].pin, 0, 1);
 }
 
 /* Sets the pulse width in cycles by changing the
