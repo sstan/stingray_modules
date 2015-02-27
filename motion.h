@@ -18,7 +18,7 @@
  *         Motion Module Initialization           *
  **************************************************/
 
-/* motion_init -- Module initialisation
+/* motion_init -- Module initialization
  *
  * Call at the beginning of the program.
  *
@@ -29,14 +29,14 @@ void motion_init(void);
 
 
 /**************************************************
- *                  Servo Motors                  *
+ *                  Servomotors                   *
  **************************************************/
 
 /* motion_servo_set_pulse_width -- set the pulse width length
  *
  *
  * Parameters:
- *   - int arg
+ *   - int deviceId
  *     The valid options are:
  *         MOTION_WHEEL_LEFT
  *         MOTION_WHEEL_RIGHT
@@ -46,13 +46,13 @@ void motion_init(void);
  *     The pulse width length in ticks.
  *
  */
-void motion_servo_set_pulse_width(int arg, uint16_t ticks);
+void motion_servo_set_pulse_width(int deviceId, uint16_t pulseWidthTicks);
 
 
 /* motion_servo_get_pulse_width -- get the pulse width length
  *
  * Parameters:
- *   - int arg
+ *   - int deviceId
  *     The valid options are:
  *         MOTION_WHEEL_LEFT
  *         MOTION_WHEEL_RIGHT
@@ -62,10 +62,10 @@ void motion_servo_set_pulse_width(int arg, uint16_t ticks);
  *   The current pulse width length (in ticks).
  *
  */
-uint16_t motion_servo_get_pulse_width(int arg);
+uint16_t motion_servo_get_pulse_width(int deviceId);
 
 
-/* motion_servo_start -- start a servo motor
+/* motion_servo_start -- start a servomotor
  *
  * This function connects the control signal to the appropriate output pin.
  *
@@ -73,7 +73,7 @@ uint16_t motion_servo_get_pulse_width(int arg);
  * at a rate of 20 Hz.
  *
  * Parameters:
- *   - int arg
+ *   - int deviceId
  *     The valid options are:
  *         MOTION_WHEEL_LEFT
  *         MOTION_WHEEL_RIGHT
@@ -81,10 +81,10 @@ uint16_t motion_servo_get_pulse_width(int arg);
  *
  *
  */
-void motion_servo_start(int arg);
+void motion_servo_start(int deviceId);
 
 
-/* motion_servo_stop -- stop a servo motor
+/* motion_servo_stop -- stop a servomotor
  *
  * This function disconnects the control signal from the output pin.
  *
@@ -92,14 +92,14 @@ void motion_servo_start(int arg);
  * output. This turns the servo off.
  *
  * Parameters:
- *   - int arg
+ *   - int deviceId
  *     The valid options are:
  *         MOTION_WHEEL_LEFT
  *         MOTION_WHEEL_RIGHT
  *         MOTION_SERVO_CENTER
  *
  */
-void motion_servo_stop(int arg);
+void motion_servo_stop(int deviceId);
 
 
 /**************************************************
@@ -109,7 +109,7 @@ void motion_servo_stop(int arg);
 /* motion_enc_read -- poll an optical encoder
  *
  * Parameter:
- *   - int arg
+ *   - int deviceId
  *     The valid options are:
  *         MOTION_WHEEL_LEFT
  *         MOTION_WHEEL_RIGHT
@@ -125,22 +125,21 @@ void motion_servo_stop(int arg);
  *   - 0 if no new data is available. Otherwise, 1.
  *
  */
-int motion_enc_read(int arg, uint32_t* val);
+int motion_enc_read(int deviceId, uint32_t* tickCount);
 
 
-/* motion_enc_get_teslice -- time elapsed since the last input capture event
+/* motion_enc_get_last_ts -- value of the TSC at the last input capture event
  *
- * This function returns the number of ticks elapsed since the last input
- * capture event has occurred.
+ * This function returns the time stamp of the last input capture event.
  *
  * Parameters:
- *   - int arg
+ *   - int deviceId
  *     The valid options are:
  *         MOTION_WHEEL_LEFT
  *         MOTION_WHEEL_RIGHT
  *
  */
-uint32_t motion_enc_get_teslice(int arg);
+uint32_t motion_enc_get_last_ts(int deviceId);
 
 
 /* motion_enc_get_tsc -- The 32-bit Time Stamp Counter of this module
