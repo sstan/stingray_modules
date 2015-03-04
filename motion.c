@@ -7,7 +7,6 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
 #include "motion.h"
 
 
@@ -300,6 +299,8 @@ int motion_enc_read(int arg, uint32_t *val)
 
 	/* If new data is available */
 
+	cli();
+
 	if (new_data_available[arg] == 1)
 	{
 		*val = new_data[arg];
@@ -309,18 +310,36 @@ int motion_enc_read(int arg, uint32_t *val)
 		retVal = 1;
 	}
 
+	sei();
+
 	return retVal;
 }
 
 uint32_t motion_enc_get_last_ts(int deviceId)
 {
-	return last_timestamp[deviceId];
+	uint32_t ts;
+
+	cli();
+
+	ts = last_timestamp[deviceId];
+
+	sei();
+
+	return ts;
 }
 
-uint32_t motion_enc_get_tsc(void)
+uint32_t motion_get_tsc(void)
 {
-	return tov_cntr_cumulative[0]*TC_20_MS_PERIOD_AT_PS_8
+	uint32_t retVal;
+
+	cli();
+
+	retVal = tov_cntr_cumulative[0]*TC_20_MS_PERIOD_AT_PS_8
 	        + *encoders[0].tc_p->TCNT_ptr;
+
+	sei();
+
+	return retVal;
 }
 
 
@@ -388,7 +407,8 @@ static inline void handle_transition(int enc_id)
 		delta = icr + tov*TC_20_MS_PERIOD_AT_PS_8 - last_icr[enc_id];
 	}
 
-	last_timestamp[enc_id] = motion_enc_get_tsc();
+	last_timestamp[enc_id] = tov_cntr_cumulative[0]*TC_20_MS_PERIOD_AT_PS_8
+	        + *encoders[0].tc_p->TCNT_ptr;
 
 	new_data[enc_id] = delta;
 

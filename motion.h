@@ -142,7 +142,7 @@ int motion_enc_read(int deviceId, uint32_t* tickCount);
 uint32_t motion_enc_get_last_ts(int deviceId);
 
 
-/* motion_enc_get_tsc -- The 32-bit Time Stamp Counter of this module
+/* motion_get_tsc -- The 32-bit Time Stamp Counter of this module
  *
  * This function returns the TSC.
  *
@@ -153,7 +153,7 @@ uint32_t motion_enc_get_last_ts(int deviceId);
  * The TSC is incremented at a rate of 2MHz.
  *
  */
-uint32_t motion_enc_get_tsc(void);
+uint32_t motion_get_tsc(void);
 
 
 #endif /* MOTION_H_ */
