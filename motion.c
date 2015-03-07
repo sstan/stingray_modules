@@ -18,7 +18,6 @@
 #define MAX_PULSE_WIDTH_TICKS       ((uint16_t) 4800)
 #define MIN_PULSE_WIDTH_TICKS       ((uint16_t) 1100)
 #define INITIAL_PULSE_WIDTH_TICKS   ((uint16_t) 2640)
-#define NUMBER_OF_SERVOS            3
 
 /* Encoders */
 
@@ -43,12 +42,11 @@
 
 
 /******************************************************************************
- *    Structure Definitions
+ *    Configuration Structure Definitions
+ *
+ *    These structures store configuration register pointers and configuration
+ *    data for the the MEGA2560 Timer/Counter modules.
  ******************************************************************************/
-
-/* Configuration registers and configuration data for the
- * the Timer/Counter modules.
- */
 
 struct tc_module_registers
 {
@@ -81,17 +79,19 @@ struct motor_registers_s
 	const struct tc_module_registers* tc_p;
 };
 
+
 /******************************************************************************
  *    Global Data Structures
  ******************************************************************************/
 
 /* A 32-bit variable that keeps track of the TCNT overflows. */
 static volatile uint32_t tov_cntr[ENC_NUMBER_OF_ENCODERS];
+
 /* The latest value of the Input Capture Register */
 static volatile uint16_t last_icr[ENC_NUMBER_OF_ENCODERS];
 
-static volatile uint32_t new_data           [ENC_NUMBER_OF_ENCODERS];
-static volatile int      new_data_available [ENC_NUMBER_OF_ENCODERS];
+static volatile uint32_t new_data[ENC_NUMBER_OF_ENCODERS];
+static volatile int      new_data_available[ENC_NUMBER_OF_ENCODERS];
 
 static const struct tc_module_registers tc_module_s[] =
 {
@@ -120,11 +120,6 @@ static const struct tc_module_registers tc_module_s[] =
 		TIMSK_ptr:   &TIMSK5,
 	}
 };
-
-
-/* Initialization of the array of structures that holds all the registers
- * that are needed to use the optical encoders.
- */
 
 static const struct encoder_config_t encoders[] =
 {
@@ -169,8 +164,8 @@ static const struct motor_registers_s motors[] =
 		tc_p:       &tc_module_s[TC_MODULE_4]
 	},
 	{	/* Center servo
-		 *
 		 * PH4 ( OC4B )	Digital pin 7 (PWM)
+		 *
 		 */
 		OCR_ptr:    &OCR4B,
 		DDR_ptr:    &DDRH,
@@ -187,23 +182,29 @@ static const struct motor_registers_s motors[] =
  ******************************************************************************/
 
 static inline void enc_init(int deviceId);
+
 static inline void tc_init(int tcModule);
+
 static inline void tc_init_ddr(volatile uint8_t* DDR_ptr,
                                volatile uint8_t* PORT_ptr,
-                               uint8_t pin,
-                               volatile uint8_t port_value,
-                               volatile uint8_t ddr_value);
+                               uint8_t           pin,
+                               volatile uint8_t  port_value,
+                               volatile uint8_t  ddr_value);
+
 static inline void tc_set_com(volatile uint8_t* TCCR_A_ptr,
-                              uint8_t channel,
-                              uint8_t co_mode);
+                              uint8_t           channel,
+                              uint8_t           co_mode);
+
 static inline void tc_set_wgm(volatile uint8_t* TCCR_A_ptr,
                               volatile uint8_t* TCCR_B_ptr,
-                              uint8_t wgm);
+                              uint8_t           wgm);
+
 static inline void tc_set_prescaler(volatile uint8_t* TCCR_B_ptr,
-                                    int prescaler);
+                                    int               prescaler);
+
 static inline void increment_tov_cntr(int enc_id);
+
 static inline void handle_transition(int enc_id);
-static inline void enc_toggle_trigger_edge(int enc_id);
 
 
 /******************************************************************************
@@ -211,13 +212,14 @@ static inline void enc_toggle_trigger_edge(int enc_id);
  ******************************************************************************/
 
 /*----------------------------------------------------------------------------
- * Function: motion_init -- Module initialization
+ * motion_init -- Module initialization
  *
  * Call at the beginning of the program.
  *
  * This function initializes this module.
  *
  *----------------------------------------------------------------------------*/
+
 void motion_init(void)
 {
 	tc_init(TC_MODULE_4);
@@ -228,12 +230,12 @@ void motion_init(void)
 
 
 /*----------------------------------------------------------------------------
- * Function: motion_servo_start -- start a servomotor
+ * motion_servo_start -- start a servo motor
  *
  * This function connects the control signal to the appropriate output pin.
  *
- * The control signal is an electric pulse (step function) that is generated
- * at a rate of 20 Hz.
+ * The control signal is an electric pulse (step function) that is repeated
+ * at a rate of 20 Hz. The pulse width can be set by the user.
  *
  * Parameters:
  *   - int deviceId
@@ -244,40 +246,42 @@ void motion_init(void)
  *
  *
  *----------------------------------------------------------------------------*/
-void motion_servo_start(int arg)
-{
-	uint16_t pulse_width_cycles = *(motors[arg].OCR_ptr);
 
-	/* This call will ensure that the Output Compare Register
-	 * contains a valid value before the servo is started.
-	 */
+void motion_servo_start(int deviceId)
+{
+	uint16_t pulse_width_cycles = *(motors[deviceId].OCR_ptr);
+
+
+	/* This will ensure that the pulse width is within an acceptable range. */
 
 	if (!(pulse_width_cycles <= MAX_PULSE_WIDTH_TICKS &&
 		  pulse_width_cycles >= MIN_PULSE_WIDTH_TICKS))
 	{
-		*(motors[arg].OCR_ptr) = INITIAL_PULSE_WIDTH_TICKS;
+		*(motors[deviceId].OCR_ptr) = INITIAL_PULSE_WIDTH_TICKS;
 	}
+
 
 	/* The OCnX pin needs to be an output.
 	 * Initialize the Data Direction Register of the OCnX pin.
 	 */
 
-	tc_init_ddr(motors[arg].DDR_ptr,
-	            motors[arg].PORT_ptr,
-	            motors[arg].pin,
-	            0,          /* output 0 (0V) */
-	            1);         /* OUTPUT */
+	tc_init_ddr(motors[deviceId].DDR_ptr,
+	            motors[deviceId].PORT_ptr,
+	            motors[deviceId].pin,
+	            0,          /* make the output 0 (0V) */
+	            1);         /* pin mode: OUTPUT */
+
 
 	/* Set the Compare Output Mode to non-inverted. */
 
-	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
-	           motors[arg].channel,
-	           TC_OCM_NON_INVERTED); /* non-inverting mode */
+	tc_set_com(motors[deviceId].tc_p->TCCR_A_ptr,
+	           motors[deviceId].channel,
+	           TC_OCM_NON_INVERTED);
 }
 
 
 /*----------------------------------------------------------------------------
- * Function: motion_servo_stop -- stop a servomotor
+ * motion_servo_stop -- stop a servo motor
  *
  * This function disconnects the control signal from the output pin.
  *
@@ -292,24 +296,26 @@ void motion_servo_start(int arg)
  *         MOTION_SERVO_CENTER
  *
  *----------------------------------------------------------------------------*/
-void motion_servo_stop(int arg)
+
+void motion_servo_stop(int deviceId)
 {
 	/* Set the pin as an output of 0V. */
 
-	tc_init_ddr(motors[arg].DDR_ptr,
-	            motors[arg].PORT_ptr,
-	            motors[arg].pin, 0, 1);
+	tc_init_ddr(motors[deviceId].DDR_ptr,
+	            motors[deviceId].PORT_ptr,
+	            motors[deviceId].pin, 0, 1);
+
 
 	/* Disconnect the output pin from the Timer/Counter module. */
 
-	tc_set_com(motors[arg].tc_p->TCCR_A_ptr,
-	           motors[arg].channel,
+	tc_set_com(motors[deviceId].tc_p->TCCR_A_ptr,
+	           motors[deviceId].channel,
 	           0b00);
 }
 
 
 /* ---------------------------------------------------------------------------
- * Function: motion_servo_set_pulse_width -- set the pulse width length
+ * motion_servo_set_pulse_width -- set the pulse width length
  *
  *
  * Parameters:
@@ -322,21 +328,21 @@ void motion_servo_stop(int arg)
  *   - uint16_t ticks
  *     The pulse width length in ticks.
  *
- * Sets the pulse width by changing the
- * value of the Output Compare Register
+ * Sets the pulse width by changing the value of the Output Compare Register.
  *----------------------------------------------------------------------------*/
-void motion_servo_set_pulse_width(int arg, uint16_t pulse_width_cycles)
+
+void motion_servo_set_pulse_width(int deviceId, uint16_t pulse_width_cycles)
 {
 	if (pulse_width_cycles <= MAX_PULSE_WIDTH_TICKS &&
 		pulse_width_cycles >= MIN_PULSE_WIDTH_TICKS)
 	{
-		*(motors[arg].OCR_ptr) = pulse_width_cycles;
+		*(motors[deviceId].OCR_ptr) = pulse_width_cycles;
 	}
 }
 
 
 /*----------------------------------------------------------------------------
- * Function: motion_servo_get_pulse_width -- get the pulse width length
+ * motion_servo_get_pulse_width -- get the pulse width length
  *
  * Parameters:
  *   - int deviceId
@@ -348,17 +354,17 @@ void motion_servo_set_pulse_width(int arg, uint16_t pulse_width_cycles)
  * Return value:
  *   The current pulse width length (in ticks).
  *
- * Returns the pulse width by reading the
- * value of the Output Compare Register
+ * Returns the pulse width by reading the value of the Output Compare Register.
  *----------------------------------------------------------------------------*/
-uint16_t motion_servo_get_pulse_width(int arg)
+
+uint16_t motion_servo_get_pulse_width(int deviceId)
 {
-    return *(motors[arg].OCR_ptr);
+    return *(motors[deviceId].OCR_ptr);
 }
 
 
 /*----------------------------------------------------------------------------
- * Function: motion_enc_read -- poll an optical encoder
+ * motion_enc_read -- poll an optical encoder
  *
  * Parameter:
  *   - int deviceId
@@ -372,31 +378,31 @@ uint16_t motion_servo_get_pulse_width(int arg)
  *     recent input capture events will be written. Nothing is written
  *     if no new data is available.
  *
- *
  * Return value:
  *   - 0 if no new data is available. Otherwise, 1.
  *
  *----------------------------------------------------------------------------*/
-int motion_enc_read(int arg, uint32_t *val)
+
+int motion_enc_read(int deviceId, uint32_t *val)
 {
 	int retVal = 0;
 
-	cli();
+	cli(); /* mask interrupts */
 
 	/* If new data is available */
-	if (new_data_available[arg] == 1)
+
+	if (new_data_available[deviceId] == 1)
 	{
-		*val = new_data[arg];
-
-		new_data_available[arg] = 0;
-
+		*val = new_data[deviceId];
+		new_data_available[deviceId] = 0;
 		retVal = 1;
 	}
 
-	sei();
+	sei(); /* unmask interrupts */
 
 	return retVal;
 }
+
 
 /******************************************************************************
  *    Motion Module Local Functions
@@ -408,19 +414,22 @@ int motion_enc_read(int arg, uint32_t *val)
 
 /* tc_init -- Initialize a Timer/Counter module
  *
- * Will set the output compare mode, the waveform generation mode,
- * the prescaler value and the TOP value of a Timer/Counter module.
- *
- * The configuration that is used is defined in a structure in the source file.
+ * This function will configure the following Timer/Counter module parameters:
+ *   - Output Compare Mode (OCM)
+ *   - Waveform Generation Mode (WGM)
+ *   - prescaler value
+ *   - TOP value
  *
  * Parameter:
  *   - timerId
  *     The Timer/Counter module identifier (index into tc_module_s array).
  */
+
 static inline void tc_init(int timerId)
 {
-	/* For all the channels, set the output compare mode
-	 * to 0 (pin is disconnected from the TC module).
+	/* Set the OCM to 0 for the three channels of the TC module.
+	 * As result, the pin associated to each channel will be
+	 * disconnected from the TC module.
 	 */
 
 	tc_set_com(tc_module_s[timerId].TCCR_A_ptr,
@@ -435,8 +444,6 @@ static inline void tc_init(int timerId)
 	           TC_CHANNEL_C,
 	           0b00);
 
-	/* Set the Waveform Generation Mode */
-
 	tc_set_wgm(tc_module_s[timerId].TCCR_A_ptr,
 	           tc_module_s[timerId].TCCR_B_ptr,
 	           tc_module_s[timerId].wgm_mode);
@@ -444,8 +451,10 @@ static inline void tc_init(int timerId)
 	tc_set_prescaler(tc_module_s[timerId].TCCR_B_ptr,
 	                 tc_module_s[timerId].prescale);
 
-	/* This value determines the rate at which the pulses are sent. */
-	/* Store the value in the Input Capture Register */
+
+	/* This value determines the rate at which the pulses are sent.
+	 * Store the value in the Input Capture Register
+	 */
 
 	*tc_module_s[timerId].TOP_value_p = TC_20_MS_PERIOD_AT_PS_8 - 1;
 }
@@ -462,6 +471,7 @@ static inline void tc_init(int timerId)
  *
  *  - pin
  *      The bit that corresponds to the pin in the PORT Register.
+ *      ---> The expected value is an integer between 0 and 7.
  *
  *  - port_value
  *      The value that will be used to initialize the PORT register.
@@ -469,6 +479,7 @@ static inline void tc_init(int timerId)
  *  - ddr_value
  *      The value that will be used to initialize the DDR register.
  */
+
 static inline void tc_init_ddr(volatile uint8_t* DDR_ptr,
                                volatile uint8_t* PORT_ptr,
                                uint8_t pin,
@@ -508,6 +519,7 @@ static inline void tc_init_ddr(volatile uint8_t* DDR_ptr,
  *      The desired compare output mode of the channel.
  *
  */
+
 static inline void tc_set_com(volatile uint8_t* TCCR_A_ptr,
                               uint8_t channel,
                               uint8_t co_mode)
@@ -568,6 +580,7 @@ static inline void tc_set_com(volatile uint8_t* TCCR_A_ptr,
  *      The desired waveform generation mode.
  *
  */
+
 static inline void tc_set_wgm(volatile uint8_t* TCCR_A_ptr,
                               volatile uint8_t* TCCR_B_ptr,
                               uint8_t wgm)
@@ -603,6 +616,7 @@ static inline void tc_set_wgm(volatile uint8_t* TCCR_A_ptr,
  *      The desired clock frequency divider.
  *
  */
+
 static inline void tc_set_prescaler(volatile uint8_t* TCCR_B_ptr,
                                     int prescaler)
 {
@@ -651,9 +665,9 @@ default_case:   /* DEFAULT */
 }
 
 
-/*------------------------------------------------------
- *  ENCODER CONFIGURATION FUNCTIONS
- *  --------------------------------------------------*/
+/*----------------------------------------------------------------------------
+*  ENCODER CONFIGURATION FUNCTIONS
+ *----------------------------------------------------------------------------*/
 
 static inline void enc_init(int enc_id)
 {
@@ -662,6 +676,7 @@ static inline void enc_init(int enc_id)
 
 	last_icr[enc_id] = 0;
 	tov_cntr[enc_id] = 0;
+
 
 	/* The Input Capture Pins are INPUTS. This call will
 	 * set the Data Direction Registers accordingly.
@@ -673,13 +688,20 @@ static inline void enc_init(int enc_id)
 	            0,      /* no pull-up resistor */
 	            0);     /* INPUT */
 
+
 	/* Input Capture Interrupt Enable */
 
 	*encoders[enc_id].tc_p->TIMSK_ptr  |= (1 << 5);
 
+
 	/* Timer Overflow Interrupt Enable */
 
 	*encoders[enc_id].tc_p->TIMSK_ptr  |= (1 << 0);
+
+
+	/* rising edge */ /* falling edge: &= ~(1 << 6) */
+
+	*encoders[enc_id].tc_p->TCCR_B_ptr |= 1 << 6;
 }
 
 
@@ -718,8 +740,6 @@ static inline void handle_transition(int enc_id)
 	uint16_t icr;
 	uint32_t tov;
 
-	enc_toggle_trigger_edge(enc_id);
-
 	/* clear the Input Capture Flag */
 
 	*encoders[enc_id].tc_p->TIFR_ptr |= (1 << 5);
@@ -743,18 +763,4 @@ static inline void handle_transition(int enc_id)
 	new_data_available[enc_id] = 1;
 
 	last_icr[enc_id] = icr;
-}
-
-static inline void enc_toggle_trigger_edge(int enc_id)
-{
-	if ((*encoders[enc_id].tc_p->TCCR_B_ptr & (1 << 6)) == 0)
-	{
-		/* A falling edge has been used as trigger. Now use a rising edge. */
-		*encoders[enc_id].tc_p->TCCR_B_ptr |= 1 << 6;
-	}
-	else
-	{
-		/* A rising edge has been used as trigger. Now use a falling edge. */
-		*encoders[enc_id].tc_p->TCCR_B_ptr &= ~(1 << 6);
-	}
 }

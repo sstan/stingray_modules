@@ -10,27 +10,21 @@
 
 #include <stdint.h>
 
-// Stingray devices
+/* Stingray devices */
 
 #define MOTION_WHEEL_LEFT        0
 #define MOTION_WHEEL_RIGHT       1
 #define MOTION_SERVO_CENTER      2
 
-// Module initialization
 
-void motion_init(void);
-
-
-// Servo motor control functions
+void     motion_init(void);
 
 void     motion_servo_set_pulse_width(int deviceId, uint16_t pulseWidthTicks);
 uint16_t motion_servo_get_pulse_width(int deviceId);
 void     motion_servo_start          (int deviceId);
 void     motion_servo_stop           (int deviceId);
 
-// Encoder poll function
-
-int motion_enc_read(int deviceId, uint32_t* tickCount);
+int      motion_enc_read(int deviceId, uint32_t* tickCount);
 
 
 #endif /* MOTION_H_ */
