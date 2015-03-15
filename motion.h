@@ -10,6 +10,10 @@
 
 #include <stdint.h>
 
+#define MAX_PULSE_WIDTH_TICKS       ((uint16_t) 4800)
+#define MIN_PULSE_WIDTH_TICKS       ((uint16_t) 1100)
+#define INITIAL_PULSE_WIDTH_TICKS   ((uint16_t) 2640)
+
 /* Stingray devices */
 
 #define MOTION_WHEEL_LEFT        0

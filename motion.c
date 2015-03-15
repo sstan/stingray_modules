@@ -9,21 +9,16 @@
 #include <avr/interrupt.h>
 #include "motion.h"
 
+
 /******************************************************************************
  *    DEFINES
  ******************************************************************************/
 
-/* Servo motors */
-
-#define MAX_PULSE_WIDTH_TICKS       ((uint16_t) 4800)
-#define MIN_PULSE_WIDTH_TICKS       ((uint16_t) 1100)
-#define INITIAL_PULSE_WIDTH_TICKS   ((uint16_t) 2640)
-
 /* Encoders */
 
 #define ENC_NUMBER_OF_ENCODERS      2
-
 #define TIFR_ICF_MASK               ((uint8_t) 0b00100000)
+
 
 /* Timer/Counter */
 
@@ -35,6 +30,7 @@
 #define TC_CHANNEL_C                2
 
 #define TC_OCM_NON_INVERTED         ((uint8_t) 2)
+
 
 /* Number of 500-nanosecond cycles in 20 milliseconds. */
 
@@ -235,7 +231,7 @@ void motion_init(void)
  * This function connects the control signal to the appropriate output pin.
  *
  * The control signal is an electric pulse (step function) that is repeated
- * at a rate of 20 Hz. The pulse width can be set by the user.
+ * at a rate of 50 Hz. The pulse width can be set by the user.
  *
  * Parameters:
  *   - int deviceId
@@ -333,10 +329,15 @@ void motion_servo_stop(int deviceId)
 
 void motion_servo_set_pulse_width(int deviceId, uint16_t pulse_width_cycles)
 {
-	if (pulse_width_cycles <= MAX_PULSE_WIDTH_TICKS &&
+
+    if (pulse_width_cycles <= MAX_PULSE_WIDTH_TICKS &&
 		pulse_width_cycles >= MIN_PULSE_WIDTH_TICKS)
 	{
-		*(motors[deviceId].OCR_ptr) = pulse_width_cycles;
+        /* The OCR holds the last value of the count sequence, which is
+         * equal to the number of cycles - 1.
+         */
+
+        *(motors[deviceId].OCR_ptr) = pulse_width_cycles - 1;
 	}
 }
 
@@ -359,7 +360,11 @@ void motion_servo_set_pulse_width(int deviceId, uint16_t pulse_width_cycles)
 
 uint16_t motion_servo_get_pulse_width(int deviceId)
 {
-    return *(motors[deviceId].OCR_ptr);
+    /* The OCR holds the last value of the count sequence, which is
+     * equal to the number of cycles - 1.
+     */
+
+    return *(motors[deviceId].OCR_ptr) + 1;
 }
 
 
@@ -755,7 +760,7 @@ static inline void handle_transition(int enc_id)
 	}
 	else
 	{
-		delta = icr + tov*TC_20_MS_PERIOD_AT_PS_8 - last_icr[enc_id];
+        delta = icr + (tov*TC_20_MS_PERIOD_AT_PS_8 - last_icr[enc_id]);
 	}
 
 	new_data[enc_id] = delta;
