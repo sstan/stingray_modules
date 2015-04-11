@@ -3,6 +3,16 @@
  *
  *  Created on: Feb 25, 2015
  *      Author: Stefan Stanisic
+ *
+ * INPUTS
+ * ICP5 -- Digital pin 48 -- Left Encoder
+ * ICP4 -- Digital pin 49 -- Right Encoder
+ *
+ * OUTPUTS
+ * OC5B -- Digital pin 45 (PWM) -- Left Wheel Servo Motor
+ * OC4C -- Digital pin  8 (PWM) -- Right Wheel Servo Motor
+ * OC4B -- Digital pin  7 (PWM) -- Center Servo Motor
+ *
  */
 
 #include <avr/io.h>
@@ -119,25 +129,26 @@ static const struct tc_module_registers tc_module_s[] =
 
 static const struct encoder_config_t encoders[] =
 {
-	{	/* Left encoder */
-		/* Port L (PL0) Digital pin 49 ( ICP4 )  */
-		PORT_ptr:   &PORTL,
-		DDR_ptr:    &DDRL,
-		pin:        0,
-		tc_p:       &tc_module_s[TC_MODULE_4]
-	},
-	{	/* Right encoder */
+	{	/* Left encoder: MOTION_WHEEL_LEFT */
 		/* Port L (PL1) Digital pin 48 ( ICP5 ) */
 		PORT_ptr:   &PORTL,
 		DDR_ptr:    &DDRL,
 		pin:        1,
 		tc_p:       &tc_module_s[TC_MODULE_5]
+
+	},
+	{	/* Right encoder: MOTION_WHEEL_RIGHT */
+		/* Port L (PL0) Digital pin 49 ( ICP4 )  */
+		PORT_ptr:   &PORTL,
+		DDR_ptr:    &DDRL,
+		pin:        0,
+		tc_p:       &tc_module_s[TC_MODULE_4]
 	}
 };
 
 static const struct motor_registers_s motors[] =
 {
-	{	/* Left servo
+	{	/* MOTION_WHEEL_LEFT
 		 * PL4 ( OC5B )	Digital pin 45 (PWM)
 		 *
 		 */
@@ -148,7 +159,7 @@ static const struct motor_registers_s motors[] =
 		channel:    TC_CHANNEL_B,
 		tc_p:       &tc_module_s[TC_MODULE_5]
 	},
-	{	/* Right servo
+	{	/* MOTION_WHEEL_RIGHT
 		 * PH5 ( OC4C )	Digital pin 8 (PWM)
 		 *
 		 */
@@ -159,7 +170,7 @@ static const struct motor_registers_s motors[] =
 		channel:    TC_CHANNEL_C,
 		tc_p:       &tc_module_s[TC_MODULE_4]
 	},
-	{	/* Center servo
+	{	/* MOTION_SERVO_CENTER
 		 * PH4 ( OC4B )	Digital pin 7 (PWM)
 		 *
 		 */
@@ -716,22 +727,22 @@ static inline void enc_init(int enc_id)
 
 ISR(TIMER4_OVF_vect)
 {
-    increment_tov_cntr(MOTION_WHEEL_LEFT);
+	increment_tov_cntr(MOTION_WHEEL_RIGHT);
 }
 
 ISR(TIMER5_OVF_vect)
 {
-    increment_tov_cntr(MOTION_WHEEL_RIGHT);
+	increment_tov_cntr(MOTION_WHEEL_LEFT);
 }
 
 ISR(TIMER4_CAPT_vect)
 {
-    handle_transition(MOTION_WHEEL_LEFT);
+	handle_transition(MOTION_WHEEL_RIGHT);
 }
 
 ISR(TIMER5_CAPT_vect)
 {
-    handle_transition(MOTION_WHEEL_RIGHT);
+	handle_transition(MOTION_WHEEL_LEFT);
 }
 
 static inline void increment_tov_cntr(int enc_id)
